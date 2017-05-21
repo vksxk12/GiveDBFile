@@ -11,14 +11,18 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.ArrayList;
 
+import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 
 public class GiveDBFileMain implements ActionListener {
@@ -38,23 +42,28 @@ public class GiveDBFileMain implements ActionListener {
 	private JButton btnSearch;
 	private JButton btnPathSave;
 	private JButton btnDefaultPath;
+	private JButton btnDelete;
 
 	private JLabel lbDBMSG;
 	private JLabel lbCurrentID;
+	private JList<String> list;
 
 	private JComboBox<String> cbbView;
 	private JComboBox<String> cbbColumn;
 
 	private String driver = "oracle.jdbc.driver.OracleDriver";
 	private String url;
-	private String user;
-	private String password;
+	private String view;
+	private ArrayList<String> columns = new ArrayList<String>();
 	private Connection con = null;
 	private PreparedStatement pstmt = null;
 	private ResultSet rs = null;
-	private String sql;
 
-	private String defvstr = "(view를 고르시오)";//Default View String
+	private String sql;
+	//	private DefaultListModel<String> Columnlist = new DefaultListModel<String>();
+	private DefaultListModel<String> Columnlist = new DefaultListModel<String>();
+
+	private String defvstr = "(Select View)";//Default View String
 
 	/**
 	 * Launch the application.
@@ -120,7 +129,7 @@ public class GiveDBFileMain implements ActionListener {
 		lblView.setBounds(15, 140, 60, 20);
 		frame.getContentPane().add(lblView);
 
-		cbbView = new JComboBox();
+		cbbView = new JComboBox<String>();
 		cbbView.setBounds(80, 140, 110, 20);
 		frame.getContentPane().add(cbbView);
 		cbbView.addActionListener(this);
@@ -131,13 +140,20 @@ public class GiveDBFileMain implements ActionListener {
 		lblNewLabel_1.setBounds(15, 165, 60, 20);
 		frame.getContentPane().add(lblNewLabel_1);
 
-		cbbColumn = new JComboBox();
+		cbbColumn = new JComboBox<String>();
 		cbbColumn.setBounds(80, 165, 110, 20);
 		frame.getContentPane().add(cbbColumn);
+		cbbColumn.addActionListener(this);
 
 		JScrollPane spColumn = new JScrollPane();
 		spColumn.setBounds(80, 195, 110, 225);
 		frame.getContentPane().add(spColumn);
+
+		list = new JList<String>(Columnlist);
+		list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		list.setVisibleRowCount(20);
+		list.setBackground(new Color(255, 255, 255));
+		spColumn.setColumnHeaderView(list);
 
 		btnExcel = new JButton("출력");
 		btnExcel.setBounds(90, 440, 90, 25);
@@ -320,13 +336,16 @@ public class GiveDBFileMain implements ActionListener {
 		btnDefaultPath = new JButton("기본경로");
 		btnDefaultPath.setBounds(500, 470, 90, 25);
 		frame.getContentPane().add(btnDefaultPath);
-		btnDefaultPath.addActionListener(this);
+
+		btnDelete = new JButton("삭제");
+		btnDelete.setBounds(15, 195, 60, 60);
+		frame.getContentPane().add(btnDelete);
+		btnDelete.addActionListener(this);
 
 	}
 
 	public void actionPerformed(ActionEvent e) {
 		if(e.getSource() == btnConnect) {
-			//			System.out.println("연결버튼입니다.");
 			connect();
 		}else if(e.getSource() == btnSearch) {
 			//			System.out.println("조회버튼입니다.");
@@ -339,86 +358,134 @@ public class GiveDBFileMain implements ActionListener {
 			System.out.println("경로저장버튼입니다.");
 		}else if(e.getSource() == btnDefaultPath) {
 			System.out.println("기본경로버튼입니다.");
-		}else if(e.getSource() == cbbView&&!cbbView.getSelectedItem().equals(defvstr)) {
-			selectColumnsinView();
+		}else if(e.getSource() == btnDelete) {
+			//			System.out.println("삭제버튼입니다.");
+			delete();
+		}else if(e.getSource() == cbbView) {
+			if(!defvstr.equals(cbbView.getSelectedItem()))
+				descColumnsinView();
+			else{
+				cbbView.setForeground(Color.LIGHT_GRAY);
+				cbbColumn.removeAllItems();
+				cbbColumn.setForeground(Color.LIGHT_GRAY);
+				cbbColumn.addItem("(Not Found)");
+			}
+		}else if(e.getSource() == cbbColumn) {
+			if("(Not Found)".equals(cbbColumn.getSelectedItem())){
+				cbbColumn.removeAllItems();
+				cbbColumn.setForeground(Color.LIGHT_GRAY);
+				cbbColumn.addItem("(Not Found)");
+				columns.clear();
+				Columnlist.clear();
+			}else if("*".equals(cbbColumn.getSelectedItem())||cbbColumn.getSelectedItem()==null){
+				cbbColumn.setForeground(Color.LIGHT_GRAY);
+			}else
+				selectColumnsinView();
 		}
 	}
 
-	public void connect() {
+	public void dbconnect() {
 		try {
-			url = "jdbc:oracle:thin:@"+tfIP.getText()+":"+tfPort.getText()+":"+tfSid.getText();
+			if(rs!=null)
+				rs.close();
+			if(pstmt!=null)
+				pstmt.close();
+			if(con!=null)
+				con.close();
 			Class.forName(driver);
 			lbDBMSG.setForeground(Color.BLUE);
 			lbDBMSG.setText("driver loading complete.");
-			//			System.out.println(url);
-			//			System.out.println(tfID.getText());
-			//			System.out.println(tfPWD.getText());
+			url = "jdbc:oracle:thin:@"+tfIP.getText()+":"+tfPort.getText()+":"+tfSid.getText();
 			con = DriverManager.getConnection(url,tfID.getText(),tfPWD.getText());
 			lbDBMSG.setForeground(Color.BLUE);
-			lbDBMSG.setText("DB connectiong complete.");
+			lbDBMSG.setText("DB connecting complete.");
 			lbCurrentID.setForeground(Color.BLUE);
-			lbCurrentID.setText(tfID.getText());
+			lbCurrentID.setText(tfID.getText());	
+		}catch(ClassNotFoundException e){
+			lbDBMSG.setForeground(Color.RED);
+			lbDBMSG.setText("DB driver loading failed.");
+			lbCurrentID.setForeground(Color.RED);
+			lbCurrentID.setText("(Not connected)");
+		}catch(SQLException e){
+			lbDBMSG.setForeground(Color.RED);
+			lbDBMSG.setText("DB connecting failed.");
+			lbCurrentID.setForeground(Color.RED);
+			lbCurrentID.setText("(Not connected)");
+			//			try { 
+			//				if(con!=null)con.close();
+			//			}catch(SQLException e1){};
+		}
+	}
+	public void connect() {
+		try {
+			dbconnect();
 			sql ="SELECT table_name FROM tabs";
 			pstmt = con.prepareStatement(sql);
 			rs = pstmt.executeQuery();
-			String s;
-			cbbView.setForeground(Color.GRAY);
+			cbbView.removeAllItems();
+			cbbView.setForeground(Color.LIGHT_GRAY);
 			cbbView.addItem(defvstr);
 			while(rs.next()){
-				s = rs.getString(1);
-				//				chk.add(new JCheckBox(s));
-				cbbView.addItem(s);
-			}con.close();
-			if(rs!=null)
-				rs.close();
-		}catch(Exception e){
+				cbbView.addItem(rs.getString(1));
+			}
+		}catch(SQLException e){
 			lbDBMSG.setForeground(Color.RED);
-			lbDBMSG.setText("DB connectiong Failed.");
+			lbDBMSG.setText("DB SQL executing failed.");
+			e.printStackTrace();
 			lbCurrentID.setForeground(Color.RED);
-			lbCurrentID.setText("(not connected)");
+			lbCurrentID.setText("(Not connected)");
 		}finally{
 			try{if(rs!=null)rs.close();
 			}catch(SQLException e1){};
 			try{if(pstmt!=null)pstmt.close();
 			}catch(SQLException e1){};
-			try{if(con!=null)con.close();
-			}catch(SQLException e1){};
 		}
 	}
 
-	public void selectColumnsinView(){
+	public void descColumnsinView(){
 		try {
-			if(cbbView.getSelectedItem().equals(defvstr)){
-				cbbView.setForeground(Color.GRAY);
-				throw new BizException();
-			}
-			else
-				cbbView.setForeground(Color.BLACK);
-			con = DriverManager.getConnection(url,tfID.getText(),tfPWD.getText());
+			cbbView.setForeground(Color.BLACK);
 			sql = "SELECT * FROM "+cbbView.getSelectedItem();
 			pstmt = con.prepareStatement(sql);
 			rs=pstmt.executeQuery();
 			ResultSetMetaData metaData = rs.getMetaData();
 			cbbColumn.removeAllItems();
+			columns.clear();
+			Columnlist.clear();
+			cbbColumn.setForeground(Color.LIGHT_GRAY);
 			cbbColumn.addItem("*");
+			view = (String)cbbView.getSelectedItem();
+			columns.clear();
+			String str = null;
 			for(int i=1 ; i <= metaData.getColumnCount() ;i++ ){
-				cbbColumn.addItem(metaData.getColumnName(i));
+				str = metaData.getColumnName(i);
+				cbbColumn.addItem(str);
 			}
-		} catch (BizException e) {
-			System.out.println("BizException발생");
-		} catch (SQLException e) {
-			System.out.println("SQLException발생");
-		} catch (Exception e) {
-			System.out.println("Exception발생");
+		}catch(SQLException e){
+			lbDBMSG.setForeground(Color.RED);
+			lbDBMSG.setText("DB SQL executing failed.");
+			lbCurrentID.setForeground(Color.RED);
+			lbCurrentID.setText("(Not connected)");
 		}finally{
 			try{if(rs!=null)rs.close();
 			}catch(SQLException e1){};
 			try{if(pstmt!=null)pstmt.close();
 			}catch(SQLException e1){};
-			try{if(con!=null)con.close();
-			}catch(SQLException e1){};
 		}
+	}
+	public void selectColumnsinView(){
+		try{
+			cbbColumn.setForeground(Color.BLACK);
 
+			if(!columns.isEmpty()){
+				for(int i = 0; i < columns.size(); i++) {
+					if(cbbColumn.getSelectedItem().equals(columns.get(i)))
+						throw new BizException();
+				}
+			}
+			columns.add((String) cbbColumn.getSelectedItem());
+			Columnlist.addElement((String) cbbColumn.getSelectedItem());
+		}catch(BizException e){}
 	}
 	public void search() {
 		try{
@@ -427,6 +494,20 @@ public class GiveDBFileMain implements ActionListener {
 
 		}
 	}
+	public void delete() {
+		System.out.println(list.getSelectedValue()+" , "+list.getSelectedIndex());
+		if(list.getSelectedIndex()!=-1) {
+			Columnlist.remove(list.getSelectedIndex());
+			System.out.println("Columnlist 삭제완료 ");
+			columns.remove(list.getSelectedIndex()+2);
+			System.out.println("columns 삭제완료 ");
+			for(int i= 0 ; i<columns.size() ; i++)
+				System.out.println(columns.get(i));
+		}else{
+			System.out.println("삭제불가");
+		}
+	}
+
 }
 
 class BizException extends Exception {
