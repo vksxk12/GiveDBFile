@@ -12,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Vector;
 
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
@@ -24,47 +25,51 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumn;
 
 public class GiveDBFileMain implements ActionListener {
 
-	private JFrame frame;
-	private JTable table;
-	private JTextField tfIP;
+	//Swing
+	private JFrame frame;				//JFrame
+	private JTable table;				//JTable
+	private JTextField tfIP;			//JTextField
 	private JTextField tfPort;
 	private JTextField tfSid;
 	private JTextField tfID;
 	private JTextField tfPWD;
 	private JTextField tfPath;
-
-	private JButton btnExcel;
+	private JButton btnExcel;			//JButton
 	private JButton btnConnect;
 	private JButton btnReset;
 	private JButton btnSearch;
 	private JButton btnPathSave;
 	private JButton btnDefaultPath;
 	private JButton btnDelete;
-
-	private JLabel lbDBMSG;
+	private JScrollPane scrollPane;		//JScrollPane
+	private JLabel lbDBMSG;				//JLabel
+	private JLabel lbSearchMSG;
 	private JLabel lbCurrentID;
-	private JList<String> list;
-
-	private JComboBox<String> cbbView;
+	private JComboBox<String> cbbView;	//JComboBox
 	private JComboBox<String> cbbColumn;
-
-	private String driver = "oracle.jdbc.driver.OracleDriver";
+	private JList<String> list;			//Jlist
+	//DB Connect
+	private String driver = "oracle.jdbc.driver.OracleDriver"; 
 	private String url;
-	private String view;
-	private ArrayList<String> columns = new ArrayList<String>();
 	private Connection con = null;
 	private PreparedStatement pstmt = null;
 	private ResultSet rs = null;
-
 	private String sql;
-	//	private DefaultListModel<String> Columnlist = new DefaultListModel<String>();
-	private DefaultListModel<String> Columnlist = new DefaultListModel<String>();
-
+	//Values
+	private String view;
+	private Vector<String> columns = new Vector<String>();
+	private ArrayList<String> types = new ArrayList<String>();
 	private String defvstr = "(Select View)";//Default View String
-
+	private Vector<String> MaxColumns = new Vector<String>();
+	//DefaultModels
+	private DefaultListModel<String> Columnlist = new DefaultListModel<String>();
+	private DefaultTableModel dtModel = null;
 	/**
 	 * Launch the application.
 	 */
@@ -97,12 +102,9 @@ public class GiveDBFileMain implements ActionListener {
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.getContentPane().setLayout(null);
 
-		JScrollPane scrollPane = new JScrollPane();
+		scrollPane = new JScrollPane();
 		scrollPane.setBounds(220, 140, 579, 280);
 		frame.getContentPane().add(scrollPane);
-
-		table = new JTable();
-		scrollPane.setColumnHeaderView(table);
 
 		JLabel lblNewLabel = new JLabel("*검색결과");
 		lblNewLabel.setForeground(new Color(0, 0, 255));
@@ -318,7 +320,7 @@ public class GiveDBFileMain implements ActionListener {
 		label_5.setBounds(375, 110, 60, 20);
 		frame.getContentPane().add(label_5);
 
-		JLabel lbSearchMSG = new JLabel("New label");
+		lbSearchMSG = new JLabel("New label");
 		lbSearchMSG.setFont(new Font("굴림", Font.PLAIN, 14));
 		lbSearchMSG.setBounds(445, 110, 300, 20);
 		frame.getContentPane().add(lbSearchMSG);
@@ -365,6 +367,7 @@ public class GiveDBFileMain implements ActionListener {
 			if(!defvstr.equals(cbbView.getSelectedItem()))
 				descColumnsinView();
 			else{
+				view = null;
 				cbbView.setForeground(Color.LIGHT_GRAY);
 				cbbColumn.removeAllItems();
 				cbbColumn.setForeground(Color.LIGHT_GRAY);
@@ -449,17 +452,23 @@ public class GiveDBFileMain implements ActionListener {
 			pstmt = con.prepareStatement(sql);
 			rs=pstmt.executeQuery();
 			ResultSetMetaData metaData = rs.getMetaData();
+			
 			cbbColumn.removeAllItems();
-			columns.clear();
 			Columnlist.clear();
+			columns.clear();
+			types.clear();
+			MaxColumns.clear();
+
 			cbbColumn.setForeground(Color.LIGHT_GRAY);
 			cbbColumn.addItem("*");
 			view = (String)cbbView.getSelectedItem();
-			columns.clear();
+			
 			String str = null;
 			for(int i=1 ; i <= metaData.getColumnCount() ;i++ ){
 				str = metaData.getColumnName(i);
+				types.add(metaData.getColumnTypeName(i));
 				cbbColumn.addItem(str);
+				MaxColumns.add(str);
 			}
 		}catch(SQLException e){
 			lbDBMSG.setForeground(Color.RED);
@@ -485,26 +494,102 @@ public class GiveDBFileMain implements ActionListener {
 			}
 			columns.add((String) cbbColumn.getSelectedItem());
 			Columnlist.addElement((String) cbbColumn.getSelectedItem());
+			types.add(types.get(cbbColumn.getSelectedIndex()-1)); //전체 데이터타입(MaxColumn개)+선택한 데이터 타입
+
 		}catch(BizException e){}
 	}
 	public void search() {
 		try{
-			//			pstmt = 
-		}catch(Exception e){
+			if(view==null)
+				throw new BizException();
+			StringBuffer sbuf = new StringBuffer();
+			Vector<String> vbuf = new Vector<String>();
+			if(columns.isEmpty()){
+				sbuf.append("*");
+				for(int i=1 ; i < Columnlist.size() ;i++) {
+					vbuf.add(Columnlist.getElementAt(i));
+					System.out.println(Columnlist.getElementAt(i));
+				}
+			}else{
+				for(int i=0 ; i < columns.size() ; i++) {
+					sbuf.append(columns.get(i));
+					if((i+1)!=columns.size())
+						sbuf.append(",");
+					vbuf.add(columns.get(i));
+				}
+			}
+			int cnt = 0;
+			if(columns.isEmpty()){
+				cnt = MaxColumns.size();
+				dtModel = new DefaultTableModel(MaxColumns,0);
+			}
+			else{
+				cnt = columns.size();
+				dtModel = new DefaultTableModel(vbuf,0);
+			}
+			table = new JTable();
+			//			scrollPane.setColumnHeaderView(table);
+			table.setAutoCreateColumnsFromModel(false);
+			table.setModel(dtModel);
+			for(int i=0; i<cnt;i++){
+				DefaultTableCellRenderer renderer = new DefaultTableCellRenderer();
+				renderer.setHorizontalAlignment(JLabel.CENTER);
+				TableColumn column = new TableColumn(i,50,renderer,null);
+				table.addColumn(column);
+			}
+			table.setFocusable(false);
+			scrollPane.setViewportView(table);
 
+			sql = "SELECT "+sbuf.toString()+" FROM "+view;
+			pstmt = con.prepareStatement(sql);
+			rs = pstmt.executeQuery();
+			int count = 0;
+			String[] str = new String[cnt]; //개선방안 찾아야함. 매번 조회시 자원낭비.
+			while(rs.next()){
+				for(int i = 0 ; i < cnt ; i++){
+					if("NUMBER".equals(types.get(i)))
+						str[i] = String.valueOf(rs.getInt(i+1));//orders테이블에 컬럼 다선택하고 조회했다가 orderid삭제하고 조회시 오류
+					else
+						str[i] = rs.getString(i+1);
+				}
+				dtModel.addRow(str);
+				count++;
+			}
+			if(count==0){
+				lbSearchMSG.setForeground(Color.RED);
+				lbSearchMSG.setText("자료가 없습니다.");
+			}else{
+				lbSearchMSG.setForeground(Color.BLUE);
+				lbSearchMSG.setText(view+" 테이블 조회 완료.");
+			}
+
+
+
+		}catch(BizException e){
+			lbSearchMSG.setForeground(Color.RED);
+			lbSearchMSG.setText("조건을 선택하세요.");
+		}catch(Exception e){
+			e.printStackTrace();
 		}
 	}
 	public void delete() {
-		System.out.println(list.getSelectedValue()+" , "+list.getSelectedIndex());
+//		System.out.println(list.getSelectedValue()+" , "+list.getSelectedIndex());
+//		System.out.println("Selected index : " + list.getSelectedIndex());
 		if(list.getSelectedIndex()!=-1) {
-			Columnlist.remove(list.getSelectedIndex());
-			System.out.println("Columnlist 삭제완료 ");
-			columns.remove(list.getSelectedIndex()+2);
-			System.out.println("columns 삭제완료 ");
-			for(int i= 0 ; i<columns.size() ; i++)
-				System.out.println(columns.get(i));
+			
+//			cbbColumn.removeAllItems();
+//			Columnlist.clear();
+//			columns.clear();
+//			types.clear();
+			columns.removeElement(list.getSelectedValue());	//1,2,3,4
+			types.remove(list.getSelectedIndex()+MaxColumns.size());
+			Columnlist.remove(list.getSelectedIndex());	//0,1,2,3
+//			for(int i= 0 ; i<columns.size() ; i++)
+//				System.out.println(i+"번째 : "+columns.get(i));
+//			for(int i= MaxColumns.size() ; i<types.size() ; i++)
+//				System.out.println((i-MaxColumns.size())+"번째 : "+types.get(i));
 		}else{
-			System.out.println("삭제불가");
+//			System.out.println("삭제불가");
 		}
 	}
 
