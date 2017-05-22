@@ -42,7 +42,6 @@ public class GiveDBFileMain implements ActionListener {
 	private JTextField tfPath;
 	private JButton btnExcel;			//JButton
 	private JButton btnConnect;
-	private JButton btnReset;
 	private JButton btnSearch;
 	private JButton btnPathSave;
 	private JButton btnDefaultPath;
@@ -57,9 +56,9 @@ public class GiveDBFileMain implements ActionListener {
 	//DB Connect
 	private String driver = "oracle.jdbc.driver.OracleDriver"; 
 	private String url;
-	private Connection con = null;
-	private PreparedStatement pstmt = null;
-	private ResultSet rs = null;
+	private Connection con;
+	private PreparedStatement pstmt;
+	private ResultSet rs;
 	private String sql;
 	//Values
 	private String view;
@@ -69,7 +68,7 @@ public class GiveDBFileMain implements ActionListener {
 	private Vector<String> MaxColumns = new Vector<String>();
 	//DefaultModels
 	private DefaultListModel<String> Columnlist = new DefaultListModel<String>();
-	private DefaultTableModel dtModel = null;
+	private DefaultTableModel dtModel;
 	/**
 	 * Launch the application.
 	 */
@@ -161,11 +160,6 @@ public class GiveDBFileMain implements ActionListener {
 		btnExcel.setBounds(90, 440, 90, 25);
 		frame.getContentPane().add(btnExcel);
 		btnExcel.addActionListener(this);
-
-		btnReset = new JButton("초기화");
-		btnReset.setBounds(100, 110, 90, 25);
-		frame.getContentPane().add(btnReset);
-		btnReset.addActionListener(this);
 
 		JLabel lblNewLabel_2 = new JLabel("경로지정 :");
 		lblNewLabel_2.setFont(new Font("함초롬돋움", Font.BOLD, 14));
@@ -352,8 +346,6 @@ public class GiveDBFileMain implements ActionListener {
 		}else if(e.getSource() == btnSearch) {
 			//			System.out.println("조회버튼입니다.");
 			search();
-		}else if(e.getSource() == btnReset) {
-			System.out.println("초기화버튼입니다.");
 		}else if(e.getSource() == btnExcel) {
 			System.out.println("엑셀출력버튼입니다.");
 		}else if(e.getSource() == btnPathSave) {
@@ -452,7 +444,7 @@ public class GiveDBFileMain implements ActionListener {
 			pstmt = con.prepareStatement(sql);
 			rs=pstmt.executeQuery();
 			ResultSetMetaData metaData = rs.getMetaData();
-			
+
 			cbbColumn.removeAllItems();
 			Columnlist.clear();
 			columns.clear();
@@ -462,7 +454,7 @@ public class GiveDBFileMain implements ActionListener {
 			cbbColumn.setForeground(Color.LIGHT_GRAY);
 			cbbColumn.addItem("*");
 			view = (String)cbbView.getSelectedItem();
-			
+
 			String str = null;
 			for(int i=1 ; i <= metaData.getColumnCount() ;i++ ){
 				str = metaData.getColumnName(i);
@@ -547,10 +539,23 @@ public class GiveDBFileMain implements ActionListener {
 			String[] str = new String[cnt]; //개선방안 찾아야함. 매번 조회시 자원낭비.
 			while(rs.next()){
 				for(int i = 0 ; i < cnt ; i++){
-					if("NUMBER".equals(types.get(i)))
-						str[i] = String.valueOf(rs.getInt(i+1));//orders테이블에 컬럼 다선택하고 조회했다가 orderid삭제하고 조회시 오류
-					else
-						str[i] = rs.getString(i+1);
+					if(columns.isEmpty()){ //사용자가 *을 선택했을때
+						if(count == 0)
+							//							System.out.println("types : "+types.get(i)+" , "+"columns : "+MaxColumns.get(i));
+							if("NUMBER".equals(types.get(i)))
+								str[i] = String.valueOf(rs.getInt(i+1));
+							else
+								str[i] = rs.getString(i+1);
+					}else{//사용자가 컬럼을 하나 또는 여러개 선택할시
+						if(count == 0)
+							//							System.out.println("types : "+types.get(MaxColumns.size()+i)+" , "+"columns : "+columns.get(i));
+							if("NUMBER".equals(types.get(MaxColumns.size()+i))) //#여기서 delete 오류발생. 앞에서 orders의 orderid를 제거시 오류발생하는 이유가 여기있음
+								//ex) book table 선택시 types의 0~4까지는 book table의 columns가 다 저장된다. 그리고 선택하는컬럼이 5~ 순차적으로 저장됨
+								//따라서 types.get(i)를 하면 안되고 types.get(MaxColumns.size()+i)를 해야한다.
+								str[i] = String.valueOf(rs.getInt(i+1));//orders테이블에 컬럼 다선택하고 조회했다가 orderid삭제하고 조회시 오류
+							else
+								str[i] = rs.getString(i+1);
+					}
 				}
 				dtModel.addRow(str);
 				count++;
@@ -573,23 +578,23 @@ public class GiveDBFileMain implements ActionListener {
 		}
 	}
 	public void delete() {
-//		System.out.println(list.getSelectedValue()+" , "+list.getSelectedIndex());
-//		System.out.println("Selected index : " + list.getSelectedIndex());
+		//		System.out.println(list.getSelectedValue()+" , "+list.getSelectedIndex());
+		//		System.out.println("Selected index : " + list.getSelectedIndex());
 		if(list.getSelectedIndex()!=-1) {
-			
-//			cbbColumn.removeAllItems();
-//			Columnlist.clear();
-//			columns.clear();
-//			types.clear();
+
+			//			cbbColumn.removeAllItems();
+			//			Columnlist.clear();
+			//			columns.clear();
+			//			types.clear();
 			columns.removeElement(list.getSelectedValue());	//1,2,3,4
 			types.remove(list.getSelectedIndex()+MaxColumns.size());
 			Columnlist.remove(list.getSelectedIndex());	//0,1,2,3
-//			for(int i= 0 ; i<columns.size() ; i++)
-//				System.out.println(i+"번째 : "+columns.get(i));
-//			for(int i= MaxColumns.size() ; i<types.size() ; i++)
-//				System.out.println((i-MaxColumns.size())+"번째 : "+types.get(i));
+			//			for(int i= 0 ; i<columns.size() ; i++)
+			//				System.out.println(i+"번째 : "+columns.get(i));
+			//			for(int i= MaxColumns.size() ; i<types.size() ; i++)
+			//				System.out.println((i-MaxColumns.size())+"번째 : "+types.get(i));
 		}else{
-//			System.out.println("삭제불가");
+			//			System.out.println("삭제불가");
 		}
 	}
 
