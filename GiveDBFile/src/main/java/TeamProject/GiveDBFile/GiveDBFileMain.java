@@ -3,6 +3,7 @@ package TeamProject.GiveDBFile;
 import java.awt.Color;
 import java.awt.EventQueue;
 import java.awt.Font;
+import java.awt.SystemColor;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
@@ -29,16 +30,16 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
+import javax.swing.UIManager;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
 
 import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import java.awt.SystemColor;
-import javax.swing.UIManager;
 
 public class GiveDBFileMain implements ActionListener {
 
@@ -407,19 +408,19 @@ public class GiveDBFileMain implements ActionListener {
 		try {
 			if(rs!=null){
 				rs.close();
-//				rs=null;
+				//				rs=null;
 			}
 			if(pstmt!=null){
 				pstmt.close();
-//				pstmt=null;
+				//				pstmt=null;
 			}
 			if(con!=null){
 				con.close();
-//				con=null;
+				//				con=null;
 			}
-//			System.out.println(">>First connect execute sql debug<<");
-//			debug();
-//			System.out.println("========================================");
+			//			System.out.println(">>First connect execute sql debug<<");
+			//			debug();
+			//			System.out.println("========================================");
 			Class.forName(driver);
 			lbDBMSG.setForeground(Color.BLUE);
 			lbDBMSG.setText("driver loading complete.");
@@ -458,30 +459,30 @@ public class GiveDBFileMain implements ActionListener {
 			cbbView.removeAllItems();
 			cbbView.setForeground(Color.LIGHT_GRAY);
 			cbbView.addItem(defvstr);
-//			System.out.println(">>Before connect execute sql debug<<");
-//			debug();
-//			System.out.println("========================================");
-//			String s = null;
+			//			System.out.println(">>Before connect execute sql debug<<");
+			//			debug();
+			//			System.out.println("========================================");
+			//			String s = null;
 			while(rs.next()){
-//				s = rs.getString(1);
+				//				s = rs.getString(1);
 				cbbView.addItem(rs.getString(1));
-//				System.out.println(s);
+				//				System.out.println(s);
 			}
 		}catch(SQLException e){
-//			System.out.println(">>>RS부분 오류<<<");
-						lbDBMSG.setForeground(Color.RED);
-						lbDBMSG.setText("DB connect SQL executing failed.");
-						e.printStackTrace();
-						lbCurrentID.setForeground(Color.RED);
-						lbCurrentID.setText("(Not connected)");
+			//			System.out.println(">>>RS부분 오류<<<");
+			lbDBMSG.setForeground(Color.RED);
+			lbDBMSG.setText("DB connect SQL executing failed.");
+			e.printStackTrace();
+			lbCurrentID.setForeground(Color.RED);
+			lbCurrentID.setText("(Not connected)");
 		}finally{
 			try{if(rs!=null)rs.close();
 			}catch(SQLException e1){};
 			try{if(pstmt!=null)pstmt.close();
 			}catch(SQLException e1){};
-//			System.out.println(">>After connect execute sql debug<<");
-//			debug();
-//			System.out.println("========================================");
+			//			System.out.println(">>After connect execute sql debug<<");
+			//			debug();
+			//			System.out.println("========================================");
 		}
 	}
 
@@ -490,7 +491,7 @@ public class GiveDBFileMain implements ActionListener {
 			cbbView.setForeground(Color.BLACK);
 			sql = "SELECT * FROM "+cbbView.getSelectedItem();
 			pstmt = con.prepareStatement(sql);
-//			System.out.println(sql);
+			//			System.out.println(sql);
 			rs=pstmt.executeQuery();
 			ResultSetMetaData metaData = rs.getMetaData();
 
@@ -664,10 +665,17 @@ public class GiveDBFileMain implements ActionListener {
 		XSSFSheet st1 = createExcel.createSheet(view);
 		XSSFRow row = st1.createRow(0);
 		XSSFCell cell;
+//		XSSFCellStyle csALIGN_CENTER = createExcel.createCellStyle();
+//		XSSFCellStyle cellStyle2 = createExcel.createCellStyle();
+//		XSSFCellStyle cellStyle3 = createExcel.createCellStyle();
+//		cellStyle.setAlignment(XSSFCellStyle.ALIGN_CENTER); //이 표시는 앞으로 사라지게될 기능이라는 의미
+//		cellStyle.setFont(XSSFFo);
+		int[] ibuf = new int[cols];
 		for(int i = 0 ; i < cols ; i++){
 			cell = row.createCell(i);
 			cell.setCellValue(excelHeader.get(i));
-			//			st1.setColumnWidth(i, 10);
+			ibuf[i] = excelHeader.get(i).length();
+			
 		}
 		//		try {
 		//			debug();
@@ -675,11 +683,16 @@ public class GiveDBFileMain implements ActionListener {
 		//			lbExcelMSG.setForeground(Color.ORANGE);
 		//			lbExcelMSG.setText(">>Debug 발생<<");
 		//		}
+
 		for(int i = 0 ; i < rows ; i++) {
 			row = st1.createRow(i+1);
 			for(int j = 0 ; j < cols ; j++) {
 				cell = row.createCell(j);
 				cell.setCellValue(excelData.get(i*cols+j));
+				if(ibuf[j]<excelData.get(i*cols+j).length())	//가장 큰 데이터길이기준으로 컬럼폭을 정함
+					ibuf[j]=excelData.get(i*cols+j).length();
+				if(i+1==rows)
+					st1.setColumnWidth(j, ibuf[j]*400);
 			}
 		}
 		StringBuffer sbuf = new StringBuffer();
