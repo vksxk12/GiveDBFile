@@ -5,6 +5,10 @@ import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -29,6 +33,13 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
 
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import java.awt.SystemColor;
+import javax.swing.UIManager;
+
 public class GiveDBFileMain implements ActionListener {
 
 	//Swing
@@ -43,12 +54,13 @@ public class GiveDBFileMain implements ActionListener {
 	private JButton btnExcel;			//JButton
 	private JButton btnConnect;
 	private JButton btnSearch;
-	private JButton btnPathSave;
 	private JButton btnDefaultPath;
 	private JButton btnDelete;
 	private JScrollPane scrollPane;		//JScrollPane
 	private JLabel lbDBMSG;				//JLabel
 	private JLabel lbSearchMSG;
+	private JLabel lbExcelMSG;
+	private JLabel lbSavedPathMSG;
 	private JLabel lbCurrentID;
 	private JComboBox<String> cbbView;	//JComboBox
 	private JComboBox<String> cbbColumn;
@@ -66,6 +78,11 @@ public class GiveDBFileMain implements ActionListener {
 	private ArrayList<String> types = new ArrayList<String>();
 	private String defvstr = "(Select View)";//Default View String
 	private Vector<String> MaxColumns = new Vector<String>();
+	private Vector<String> excelHeader = new Vector<String>();
+	private Vector<String> excelData = new Vector<String>();
+	private int cols = 0; //엑셀출력시 사용하기 위해서 선택된 컬럼수를 객체변수로 선언
+	private int rows = 0;
+
 	//DefaultModels
 	private DefaultListModel<String> Columnlist = new DefaultListModel<String>();
 	private DefaultTableModel dtModel;
@@ -97,6 +114,7 @@ public class GiveDBFileMain implements ActionListener {
 	 */
 	private void initialize() {
 		frame = new JFrame();
+		frame.getContentPane().setBackground(SystemColor.menu);
 		frame.setBounds(100, 100, 841, 564);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.getContentPane().setLayout(null);
@@ -113,6 +131,8 @@ public class GiveDBFileMain implements ActionListener {
 		frame.getContentPane().add(lblNewLabel);
 
 		btnSearch = new JButton("조회");
+		btnSearch.setBackground(UIManager.getColor("Button.background"));
+		btnSearch.setFont(new Font("함초롬돋움", Font.BOLD, 14));
 		btnSearch.setBounds(280, 110, 90, 25);
 		frame.getContentPane().add(btnSearch);
 		btnSearch.addActionListener(this);
@@ -157,6 +177,8 @@ public class GiveDBFileMain implements ActionListener {
 		spColumn.setColumnHeaderView(list);
 
 		btnExcel = new JButton("출력");
+		btnExcel.setBackground(UIManager.getColor("Button.background"));
+		btnExcel.setFont(new Font("함초롬돋움", Font.BOLD, 14));
 		btnExcel.setBounds(90, 440, 90, 25);
 		frame.getContentPane().add(btnExcel);
 		btnExcel.addActionListener(this);
@@ -211,6 +233,8 @@ public class GiveDBFileMain implements ActionListener {
 		frame.getContentPane().add(lblSid);
 
 		btnConnect = new JButton("연결");
+		btnConnect.setBackground(UIManager.getColor("Button.background"));
+		btnConnect.setFont(new Font("함초롬돋움", Font.BOLD, 14));
 		btnConnect.setBounds(80, 15, 90, 25);
 		frame.getContentPane().add(btnConnect);
 		btnConnect.addActionListener(this);
@@ -239,9 +263,9 @@ public class GiveDBFileMain implements ActionListener {
 		tfPWD.setBounds(365, 70, 120, 20);
 		frame.getContentPane().add(tfPWD);
 
-		lbDBMSG = new JLabel("New label");
-		lbDBMSG.setFont(new Font("굴림", Font.PLAIN, 14));
-		lbDBMSG.setBounds(245, 15, 300, 20);
+		lbDBMSG = new JLabel("DB 메세지 창입니다.");
+		lbDBMSG.setFont(new Font("함초롬돋움", Font.BOLD, 14));
+		lbDBMSG.setBounds(245, 15, 554, 20);
 		frame.getContentPane().add(lbDBMSG);
 
 		JLabel lblexcel = new JLabel("*Excel출력");
@@ -252,16 +276,17 @@ public class GiveDBFileMain implements ActionListener {
 		frame.getContentPane().add(lblexcel);
 
 		tfPath = new JTextField();
-		tfPath.setText("C://DB.xls");
+		tfPath.setText("D:");
 		tfPath.setColumns(10);
 		tfPath.setBounds(90, 470, 300, 20);
 		frame.getContentPane().add(tfPath);
 
-		JLabel lbCurrentPath = new JLabel("New label");
-		lbCurrentPath.setBounds(90, 495, 300, 20);
-		frame.getContentPane().add(lbCurrentPath);
+		lbSavedPathMSG = new JLabel("저장 경로 메세지 입니다.");
+		lbSavedPathMSG.setFont(new Font("함초롬돋움", Font.BOLD, 14));
+		lbSavedPathMSG.setBounds(90, 495, 709, 20);
+		frame.getContentPane().add(lbSavedPathMSG);
 
-		JLabel label_3 = new JLabel("현재경로 :");
+		JLabel label_3 = new JLabel("저장경로 :");
 		label_3.setForeground(new Color(128, 0, 128));
 		label_3.setFont(new Font("함초롬돋움", Font.BOLD, 14));
 		label_3.setHorizontalAlignment(SwingConstants.RIGHT);
@@ -314,26 +339,26 @@ public class GiveDBFileMain implements ActionListener {
 		label_5.setBounds(375, 110, 60, 20);
 		frame.getContentPane().add(label_5);
 
-		lbSearchMSG = new JLabel("New label");
-		lbSearchMSG.setFont(new Font("굴림", Font.PLAIN, 14));
-		lbSearchMSG.setBounds(445, 110, 300, 20);
+		lbSearchMSG = new JLabel("검색 메세지 입니다.");
+		lbSearchMSG.setFont(new Font("함초롬돋움", Font.BOLD, 14));
+		lbSearchMSG.setBounds(445, 110, 354, 20);
 		frame.getContentPane().add(lbSearchMSG);
 
-		JLabel lbExcelMSG = new JLabel("New label");
-		lbExcelMSG.setFont(new Font("굴림", Font.PLAIN, 14));
-		lbExcelMSG.setBounds(255, 440, 200, 20);
+		lbExcelMSG = new JLabel("엑셀 출력 메세지 입니다.");
+		lbExcelMSG.setFont(new Font("함초롬돋움", Font.BOLD, 14));
+		lbExcelMSG.setBounds(255, 440, 544, 20);
 		frame.getContentPane().add(lbExcelMSG);
 
-		btnPathSave = new JButton("저장");
-		btnPathSave.setBounds(400, 470, 90, 25);
-		frame.getContentPane().add(btnPathSave);
-		btnPathSave.addActionListener(this);
-
 		btnDefaultPath = new JButton("기본경로");
-		btnDefaultPath.setBounds(500, 470, 90, 25);
+		btnDefaultPath.setBackground(UIManager.getColor("Button.background"));
+		btnDefaultPath.setFont(new Font("함초롬돋움", Font.BOLD, 14));
+		btnDefaultPath.setBounds(400, 470, 90, 25);
 		frame.getContentPane().add(btnDefaultPath);
+		btnDefaultPath.addActionListener(this);
 
 		btnDelete = new JButton("삭제");
+		btnDelete.setBackground(UIManager.getColor("Button.background"));
+		btnDelete.setFont(new Font("함초롬돋움", Font.BOLD, 13));
 		btnDelete.setBounds(15, 195, 60, 60);
 		frame.getContentPane().add(btnDelete);
 		btnDelete.addActionListener(this);
@@ -344,16 +369,14 @@ public class GiveDBFileMain implements ActionListener {
 		if(e.getSource() == btnConnect) {
 			connect();
 		}else if(e.getSource() == btnSearch) {
-			//			System.out.println("조회버튼입니다.");
 			search();
 		}else if(e.getSource() == btnExcel) {
-			System.out.println("엑셀출력버튼입니다.");
-		}else if(e.getSource() == btnPathSave) {
-			System.out.println("경로저장버튼입니다.");
+			excel();
 		}else if(e.getSource() == btnDefaultPath) {
-			System.out.println("기본경로버튼입니다.");
+			tfPath.setText("D:");
+			lbSavedPathMSG.setForeground(Color.BLACK);
+			lbSavedPathMSG.setText("D:");
 		}else if(e.getSource() == btnDelete) {
-			//			System.out.println("삭제버튼입니다.");
 			delete();
 		}else if(e.getSource() == cbbView) {
 			if(!defvstr.equals(cbbView.getSelectedItem()))
@@ -496,34 +519,38 @@ public class GiveDBFileMain implements ActionListener {
 				throw new BizException();
 			StringBuffer sbuf = new StringBuffer();
 			Vector<String> vbuf = new Vector<String>();
+			excelHeader.clear();
+			excelData.clear();
+			//			System.out.println("현재 선택한 columns : " + columns.size()+ ", 컬럼 공백여부 : "+columns.isEmpty());
 			if(columns.isEmpty()){
 				sbuf.append("*");
-				for(int i=1 ; i < Columnlist.size() ;i++) {
-					vbuf.add(Columnlist.getElementAt(i));
-					System.out.println(Columnlist.getElementAt(i));
-				}
+				for(int i=0 ; i < MaxColumns.size() ;i++) {
+					excelHeader.add(MaxColumns.get(i));
+				}//어짜피 dtModel에 MaxColumns값 넣음. 그래서 여기선 vbuf에 추가할 필요없음. 대신 엑셀헤더에 저장
 			}else{
 				for(int i=0 ; i < columns.size() ; i++) {
 					sbuf.append(columns.get(i));
 					if((i+1)!=columns.size())
 						sbuf.append(",");
 					vbuf.add(columns.get(i));
+					excelHeader.add(columns.get(i));
 				}
 			}
-			int cnt = 0;
 			if(columns.isEmpty()){
-				cnt = MaxColumns.size();
+				cols = MaxColumns.size();
 				dtModel = new DefaultTableModel(MaxColumns,0);
 			}
 			else{
-				cnt = columns.size();
-				dtModel = new DefaultTableModel(vbuf,0);
+				cols = columns.size();
+				dtModel = new DefaultTableModel(vbuf,0);/*vbuf,0이거 빼니까
+				Exception in thread "AWT-EventQueue-0" 
+				java.lang.ArrayIndexOutOfBoundsException: 0 >= 0 발생*/
 			}
 			table = new JTable();
 			//			scrollPane.setColumnHeaderView(table);
 			table.setAutoCreateColumnsFromModel(false);
 			table.setModel(dtModel);
-			for(int i=0; i<cnt;i++){
+			for(int i=0; i<cols;i++){
 				DefaultTableCellRenderer renderer = new DefaultTableCellRenderer();
 				renderer.setHorizontalAlignment(JLabel.CENTER);
 				TableColumn column = new TableColumn(i,50,renderer,null);
@@ -535,32 +562,40 @@ public class GiveDBFileMain implements ActionListener {
 			sql = "SELECT "+sbuf.toString()+" FROM "+view;
 			pstmt = con.prepareStatement(sql);
 			rs = pstmt.executeQuery();
-			int count = 0;
-			String[] str = new String[cnt]; //개선방안 찾아야함. 매번 조회시 자원낭비.
+			String[] str = new String[cols]; //개선방안 찾아야함. 매번 조회시 자원낭비.
+			rows = 0; //와나 이거 안적어서 계속 오류..ㅡㅡ 이거찾는다고 debug()도 만들었네.
 			while(rs.next()){
-				for(int i = 0 ; i < cnt ; i++){
+				for(int i = 0 ; i < cols ; i++){
 					if(columns.isEmpty()){ //사용자가 *을 선택했을때
-						if(count == 0)
-							//							System.out.println("types : "+types.get(i)+" , "+"columns : "+MaxColumns.get(i));
-							if("NUMBER".equals(types.get(i)))
-								str[i] = String.valueOf(rs.getInt(i+1));
-							else
-								str[i] = rs.getString(i+1);
+						//						if(rows == 0)
+						//							System.out.println("types : "+types.get(i)+" , "+"columns : "+MaxColumns.get(i));
+						if("NUMBER".equals(types.get(i))){
+							str[i] = String.valueOf(rs.getInt(i+1));
+							excelData.add(str[i]);
+						}
+						else{
+							str[i] = rs.getString(i+1);
+							excelData.add(str[i]);
+						}
 					}else{//사용자가 컬럼을 하나 또는 여러개 선택할시
-						if(count == 0)
-							//							System.out.println("types : "+types.get(MaxColumns.size()+i)+" , "+"columns : "+columns.get(i));
-							if("NUMBER".equals(types.get(MaxColumns.size()+i))) //#여기서 delete 오류발생. 앞에서 orders의 orderid를 제거시 오류발생하는 이유가 여기있음
-								//ex) book table 선택시 types의 0~4까지는 book table의 columns가 다 저장된다. 그리고 선택하는컬럼이 5~ 순차적으로 저장됨
-								//따라서 types.get(i)를 하면 안되고 types.get(MaxColumns.size()+i)를 해야한다.
-								str[i] = String.valueOf(rs.getInt(i+1));//orders테이블에 컬럼 다선택하고 조회했다가 orderid삭제하고 조회시 오류
-							else
-								str[i] = rs.getString(i+1);
+						//						if(rows == 0)
+						//							System.out.println("types : "+types.get(MaxColumns.size()+i)+" , "+"columns : "+columns.get(i));
+						if("NUMBER".equals(types.get(MaxColumns.size()+i))){ //#여기서 delete 오류발생. 앞에서 orders의 orderid를 제거시 오류발생하는 이유가 여기있음
+							//ex) book table 선택시 types의 0~4까지는 book table의 columns가 다 저장된다. 그리고 선택하는컬럼이 5~ 순차적으로 저장됨
+							//따라서 types.get(i)를 하면 안되고 types.get(MaxColumns.size()+i)를 해야한다.
+							str[i] = String.valueOf(rs.getInt(i+1));//orders테이블에 컬럼 다선택하고 조회했다가 orderid삭제하고 조회시 오류
+							excelData.add(str[i]);
+						}
+						else{
+							str[i] = rs.getString(i+1);
+							excelData.add(str[i]);
+						}
 					}
 				}
 				dtModel.addRow(str);
-				count++;
+				rows++;
 			}
-			if(count==0){
+			if(rows==0){
 				lbSearchMSG.setForeground(Color.RED);
 				lbSearchMSG.setText("자료가 없습니다.");
 			}else{
@@ -597,7 +632,107 @@ public class GiveDBFileMain implements ActionListener {
 			//			System.out.println("삭제불가");
 		}
 	}
+	public void excel() {
+		XSSFWorkbook createExcel = new XSSFWorkbook();
+		XSSFSheet st1 = createExcel.createSheet(view);
+		XSSFRow row = st1.createRow(0);
+		XSSFCell cell;
+		for(int i = 0 ; i < cols ; i++){
+			cell = row.createCell(i);
+			cell.setCellValue(excelHeader.get(i));
+			//			st1.setColumnWidth(i, 10);
+		}
+		//		try {
+		//			debug();
+		//		} catch (SQLException e2) {
+		//			lbExcelMSG.setForeground(Color.ORANGE);
+		//			lbExcelMSG.setText(">>Debug 발생<<");
+		//		}
+		for(int i = 0 ; i < rows ; i++) {
+			row = st1.createRow(i+1);
+			for(int j = 0 ; j < cols ; j++) {
+				cell = row.createCell(j);
+				cell.setCellValue(excelData.get(i*cols+j));
+			}
+		}
+		StringBuffer sbuf = new StringBuffer();
+		if(columns.isEmpty()){
+			for(int i=0 ; i < MaxColumns.size() ;i++) {
+				sbuf.append(MaxColumns.get(i));
+				if((i+1)!=MaxColumns.size())
+					sbuf.append(",");
+			}
+		}else{
+			for(int i=0 ; i < columns.size() ; i++) {
+				sbuf.append(columns.get(i));
+				if((i+1)!=columns.size())
+					sbuf.append(",");
+			}
+		}
+		File file = new File(tfPath.getText()+"\\"+view+"("+sbuf.toString()+")"+".xlsx");
+		FileOutputStream fileOut = null;
+		try{
+			fileOut = new FileOutputStream(file);
+			createExcel.write(fileOut);
+			lbExcelMSG.setForeground(Color.BLUE);
+			lbExcelMSG.setText(tfPath.getText()+"\\"+view+"("+sbuf.toString()+")"+".xlsx 파일을 생성하였습니다.");
+			lbSavedPathMSG.setForeground(Color.BLUE);
+		}catch(FileNotFoundException e) {
+			//			e.printStackTrace();
+			lbExcelMSG.setForeground(Color.RED);
+			lbExcelMSG.setText("경로가 잘못 되어 파일을 생성할 수 없습니다.");
+			lbSavedPathMSG.setForeground(Color.RED);
+		}catch(IOException e){
+			//			e.printStackTrace();
+			lbExcelMSG.setForeground(Color.RED);
+			lbExcelMSG.setText("출력할 수 없습니다.");
+			lbSavedPathMSG.setForeground(Color.RED);
+		}catch(Exception e){
+			//			e.printStackTrace();
+			lbExcelMSG.setForeground(Color.RED);
+			lbExcelMSG.setText("오류가 발생하였습니다.");
+			lbSavedPathMSG.setForeground(Color.RED);
+		}finally{
+			try{if(fileOut!=null) fileOut.close();
+			}catch(IOException e1){}
+			try{if(createExcel!=null) createExcel.close();
+			}catch(IOException e1){}
+			lbSavedPathMSG.setText(tfPath.getText()+"\\"+view+"("+sbuf.toString()+")"+".xlsx");
 
+		}
+	}
+	public void debug() throws SQLException{
+		System.out.println("01. view : "+view);
+		System.out.println("02. columns.size() : "+columns.size());
+		for(int i = 0 ; i < columns.size() ; i++)
+			System.out.print("["+columns.get(i)+"]");
+		System.out.println();
+		System.out.println("03. types.size() : "+types.size());
+		for(int i = 0 ; i < types.size() ; i++)
+			System.out.print("["+types.get(i)+"]");
+		System.out.println();
+		System.out.println("04. MaxColumns.size() : "+MaxColumns.size());
+		for(int i = 0 ; i < MaxColumns.size() ; i++)
+			System.out.print("["+MaxColumns.get(i)+"]");
+		System.out.println();
+		System.out.println("05. excelHeader.size() : "+excelHeader.size());
+		for(int i = 0 ; i < excelHeader.size() ; i++)
+			System.out.print("["+excelHeader.get(i)+"]");
+		System.out.println();
+		System.out.println("06. cols : "+cols);
+		System.out.println("07. rows : "+rows);
+		System.out.println("08. excelData.size() : "+excelData.size());
+		for(int i = 0 ; i < rows ; i++){
+			for(int j = 0 ; j < cols  ; j++) {
+				System.out.print("["+excelData.get(i*cols+j)+"]");
+			}
+			System.out.println();
+		}
+		System.out.println("09. driver : "+driver);
+		System.out.println("10. con.isClosed() : "+con.isClosed()+" , con.isReadyOnly() : "+con.isReadOnly()+" , con is null : "+(con==null));
+		System.out.println("11. pstmt.isClosed() : "+pstmt.isClosed()+" , pstmt is null : "+(pstmt==null));
+		System.out.println("12. rs.isClosed() : "+rs.isClosed()+" , rs is null : "+(rs==null));
+	}
 }
 
 class BizException extends Exception {
