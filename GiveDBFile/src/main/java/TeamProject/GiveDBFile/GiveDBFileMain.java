@@ -82,6 +82,7 @@ public class GiveDBFileMain implements ActionListener {
 	private Vector<String> excelData = new Vector<String>();
 	private int cols = 0; //엑셀출력시 사용하기 위해서 선택된 컬럼수를 객체변수로 선언
 	private int rows = 0;
+	int count = 0;
 
 	//DefaultModels
 	private DefaultListModel<String> Columnlist = new DefaultListModel<String>();
@@ -379,7 +380,7 @@ public class GiveDBFileMain implements ActionListener {
 		}else if(e.getSource() == btnDelete) {
 			delete();
 		}else if(e.getSource() == cbbView) {
-			if(!defvstr.equals(cbbView.getSelectedItem()))
+			if(!defvstr.equals(cbbView.getSelectedItem())&&cbbView.getSelectedItem()!=null) //cbbView.getSelectedItem()!=null 이것때문에 개고생
 				descColumnsinView();
 			else{
 				view = null;
@@ -397,19 +398,28 @@ public class GiveDBFileMain implements ActionListener {
 				Columnlist.clear();
 			}else if("*".equals(cbbColumn.getSelectedItem())||cbbColumn.getSelectedItem()==null){
 				cbbColumn.setForeground(Color.LIGHT_GRAY);
-			}else
+			}else if(view!=null&&cbbView.getSelectedItem()!=null)
 				selectColumnsinView();
 		}
 	}
 
 	public void dbconnect() {
 		try {
-			if(rs!=null)
+			if(rs!=null){
 				rs.close();
-			if(pstmt!=null)
+//				rs=null;
+			}
+			if(pstmt!=null){
 				pstmt.close();
-			if(con!=null)
+//				pstmt=null;
+			}
+			if(con!=null){
 				con.close();
+//				con=null;
+			}
+//			System.out.println(">>First connect execute sql debug<<");
+//			debug();
+//			System.out.println("========================================");
 			Class.forName(driver);
 			lbDBMSG.setForeground(Color.BLUE);
 			lbDBMSG.setText("driver loading complete.");
@@ -438,25 +448,40 @@ public class GiveDBFileMain implements ActionListener {
 		try {
 			dbconnect();
 			sql ="SELECT table_name FROM tabs";
+			//			con.
+			//			if(pstmt!=null)
+			//				//				pstmt.getConnection(con);
+			//				if(rs!=null)
+			//					rs.clearWarnings();
 			pstmt = con.prepareStatement(sql);
 			rs = pstmt.executeQuery();
 			cbbView.removeAllItems();
 			cbbView.setForeground(Color.LIGHT_GRAY);
 			cbbView.addItem(defvstr);
+//			System.out.println(">>Before connect execute sql debug<<");
+//			debug();
+//			System.out.println("========================================");
+//			String s = null;
 			while(rs.next()){
+//				s = rs.getString(1);
 				cbbView.addItem(rs.getString(1));
+//				System.out.println(s);
 			}
 		}catch(SQLException e){
-			lbDBMSG.setForeground(Color.RED);
-			lbDBMSG.setText("DB SQL executing failed.");
-			e.printStackTrace();
-			lbCurrentID.setForeground(Color.RED);
-			lbCurrentID.setText("(Not connected)");
+//			System.out.println(">>>RS부분 오류<<<");
+						lbDBMSG.setForeground(Color.RED);
+						lbDBMSG.setText("DB connect SQL executing failed.");
+						e.printStackTrace();
+						lbCurrentID.setForeground(Color.RED);
+						lbCurrentID.setText("(Not connected)");
 		}finally{
 			try{if(rs!=null)rs.close();
 			}catch(SQLException e1){};
 			try{if(pstmt!=null)pstmt.close();
 			}catch(SQLException e1){};
+//			System.out.println(">>After connect execute sql debug<<");
+//			debug();
+//			System.out.println("========================================");
 		}
 	}
 
@@ -465,6 +490,7 @@ public class GiveDBFileMain implements ActionListener {
 			cbbView.setForeground(Color.BLACK);
 			sql = "SELECT * FROM "+cbbView.getSelectedItem();
 			pstmt = con.prepareStatement(sql);
+//			System.out.println(sql);
 			rs=pstmt.executeQuery();
 			ResultSetMetaData metaData = rs.getMetaData();
 
@@ -487,9 +513,10 @@ public class GiveDBFileMain implements ActionListener {
 			}
 		}catch(SQLException e){
 			lbDBMSG.setForeground(Color.RED);
-			lbDBMSG.setText("DB SQL executing failed.");
+			lbDBMSG.setText("DB SQL desc columns executing failed.");
 			lbCurrentID.setForeground(Color.RED);
 			lbCurrentID.setText("(Not connected)");
+			e.printStackTrace();
 		}finally{
 			try{if(rs!=null)rs.close();
 			}catch(SQLException e1){};
@@ -701,24 +728,26 @@ public class GiveDBFileMain implements ActionListener {
 
 		}
 	}
-	public void debug() throws SQLException{
+	public void debug(){
+		if(con!=null)
+			System.out.println("## CON : "+con.toString());
+		if(pstmt!=null)
+			System.out.println("## PSTMT : "+pstmt.toString());
+		if(rs!=null)
+			System.out.println("## RS : "+rs.toString());
 		System.out.println("01. view : "+view);
 		System.out.println("02. columns.size() : "+columns.size());
 		for(int i = 0 ; i < columns.size() ; i++)
 			System.out.print("["+columns.get(i)+"]");
-		System.out.println();
 		System.out.println("03. types.size() : "+types.size());
 		for(int i = 0 ; i < types.size() ; i++)
 			System.out.print("["+types.get(i)+"]");
-		System.out.println();
 		System.out.println("04. MaxColumns.size() : "+MaxColumns.size());
 		for(int i = 0 ; i < MaxColumns.size() ; i++)
 			System.out.print("["+MaxColumns.get(i)+"]");
-		System.out.println();
 		System.out.println("05. excelHeader.size() : "+excelHeader.size());
 		for(int i = 0 ; i < excelHeader.size() ; i++)
 			System.out.print("["+excelHeader.get(i)+"]");
-		System.out.println();
 		System.out.println("06. cols : "+cols);
 		System.out.println("07. rows : "+rows);
 		System.out.println("08. excelData.size() : "+excelData.size());
@@ -729,9 +758,41 @@ public class GiveDBFileMain implements ActionListener {
 			System.out.println();
 		}
 		System.out.println("09. driver : "+driver);
-		System.out.println("10. con.isClosed() : "+con.isClosed()+" , con.isReadyOnly() : "+con.isReadOnly()+" , con is null : "+(con==null));
-		System.out.println("11. pstmt.isClosed() : "+pstmt.isClosed()+" , pstmt is null : "+(pstmt==null));
-		System.out.println("12. rs.isClosed() : "+rs.isClosed()+" , rs is null : "+(rs==null));
+		System.out.print("10. con is null : "+(con==null));
+		if(con!=null){
+			try {
+				System.out.println(" , con.isClosed() : "+con.isClosed());
+			} catch (SQLException e) {
+				e.printStackTrace();
+				System.out.println(">>> con closed 오류발생 <<<");
+			}
+		}
+		else
+			System.out.println();
+		System.out.print("11. pstmt is null : "+(pstmt==null));
+		if(pstmt!=null){
+			try {
+				System.out.println(" , pstmt.isClosed() : "+pstmt.isClosed());
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				System.out.println(">>> pstmt closed 오류발생 <<<");
+			}
+		}
+		else
+			System.out.println();
+		System.out.print("12. rs is null : "+(rs==null));
+		if(rs!=null){
+			try {
+				System.out.println(" , rs.isClosed() : "+rs.isClosed());
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				System.out.println(">>> rs closed 오류발생 <<<");
+			}
+		}
+		else
+			System.out.println();
 	}
 }
 
