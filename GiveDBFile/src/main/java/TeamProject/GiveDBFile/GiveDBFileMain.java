@@ -35,8 +35,12 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
 
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.util.HSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFColor;
+import org.apache.poi.xssf.usermodel.XSSFFont;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -660,39 +664,81 @@ public class GiveDBFileMain implements ActionListener {
 			//			System.out.println("삭제불가");
 		}
 	}
+	@SuppressWarnings("deprecation")
 	public void excel() {
 		XSSFWorkbook createExcel = new XSSFWorkbook();
 		XSSFSheet st1 = createExcel.createSheet(view);
 		XSSFRow row = st1.createRow(0);
-		XSSFCell cell;
-//		XSSFCellStyle csALIGN_CENTER = createExcel.createCellStyle();
-//		XSSFCellStyle cellStyle2 = createExcel.createCellStyle();
-//		XSSFCellStyle cellStyle3 = createExcel.createCellStyle();
-//		cellStyle.setAlignment(XSSFCellStyle.ALIGN_CENTER); //이 표시는 앞으로 사라지게될 기능이라는 의미
-//		cellStyle.setFont(XSSFFo);
+		XSSFCell cell = null;
+		XSSFFont fontTitle = createExcel.createFont();
+		fontTitle.setFontHeightInPoints((short)18);
+		fontTitle.setFontName("HY헤드라인M");
+		fontTitle.setBold(true);
+		//		XSSFColor blue = new XSSFColor(Color.decode("#0C0F0S"));  //왜 분명히 파랑 0000FF를 했는데 녹색 00FF00이 나오는가? RGB가 아니라 BRG인가?
+		//		XSSFColor light_yellow = new XSSFColor(new java.awt.Color(0, 0, 255));//0 0 255 연녹색 , 0 255 0 빨강색, 255 0 0 검은색,
+		fontTitle.setColor(HSSFColor.BLUE.index);
+		XSSFCellStyle csTitle = createExcel.createCellStyle();
+		csTitle.setFont(fontTitle);
+		csTitle.setAlignment(XSSFCellStyle.ALIGN_CENTER);	//가운데 줄 표시는 앞으로 사라지게될 기능이라는 의미
+		csTitle.setBorderTop(XSSFCellStyle.BORDER_MEDIUM);
+		csTitle.setBorderBottom(XSSFCellStyle.BORDER_DOUBLE);
+		csTitle.setFillForegroundColor(HSSFColor.LIGHT_YELLOW.index);	//배경색 설정
+		csTitle.setFillPattern(HSSFCellStyle.SOLID_FOREGROUND);	//배경색 적용
 		int[] ibuf = new int[cols];
 		for(int i = 0 ; i < cols ; i++){
+			if(i == 0)
+				csTitle.setBorderLeft(XSSFCellStyle.BORDER_MEDIUM);
+			else
+				csTitle.setBorderLeft(XSSFCellStyle.BORDER_THIN);
+			if(i+1 == cols)
+				csTitle.setBorderRight(XSSFCellStyle.BORDER_MEDIUM);
+			else
+				csTitle.setBorderLeft(XSSFCellStyle.BORDER_THIN);
 			cell = row.createCell(i);
 			cell.setCellValue(excelHeader.get(i));
+			cell.setCellStyle(csTitle);
+			row.setHeight((short) 500);
 			ibuf[i] = excelHeader.get(i).length();
-			
 		}
-		//		try {
-		//			debug();
-		//		} catch (SQLException e2) {
-		//			lbExcelMSG.setForeground(Color.ORANGE);
-		//			lbExcelMSG.setText(">>Debug 발생<<");
-		//		}
-
+		XSSFCellStyle csData = createExcel.createCellStyle();
+		XSSFFont fontData = createExcel.createFont();
+		fontData.setFontHeightInPoints((short)14);
+		fontData.setFontName("HY헤드라인M");
+		fontData.setBold(false);
+		csData.setFont(fontData);
+		csData.setAlignment(XSSFCellStyle.ALIGN_CENTER);	//가운데 줄 표시는 앞으로 사라지게될 기능이라는 의미
+		
 		for(int i = 0 ; i < rows ; i++) {
 			row = st1.createRow(i+1);
+			row.setHeight((short) 500);
+			
 			for(int j = 0 ; j < cols ; j++) {
+				if(j == 0) {
+					csData.setBorderLeft(XSSFCellStyle.BORDER_MEDIUM);
+
+				}
+				else {
+					csData.setBorderLeft(XSSFCellStyle.BORDER_THIN);
+				}
+				if(j+1 == cols)
+					csData.setBorderRight(XSSFCellStyle.BORDER_MEDIUM);
+				else
+					csData.setBorderLeft(XSSFCellStyle.BORDER_THIN);
+				if(i+1==rows)
+					csData.setBorderBottom(XSSFCellStyle.BORDER_MEDIUM);
+				else
+					csData.setBorderBottom(XSSFCellStyle.BORDER_THIN);
+
 				cell = row.createCell(j);
 				cell.setCellValue(excelData.get(i*cols+j));
-				if(ibuf[j]<excelData.get(i*cols+j).length())	//가장 큰 데이터길이기준으로 컬럼폭을 정함
+
+				if(excelData.get(i*cols+j) != null && ibuf[j]<excelData.get(i*cols+j).length())	//가장 큰 데이터길이기준으로 컬럼폭을 정함
 					ibuf[j]=excelData.get(i*cols+j).length();
+				
 				if(i+1==rows)
-					st1.setColumnWidth(j, ibuf[j]*400);
+					st1.setColumnWidth(j, ibuf[j]*500);
+			
+				cell.setCellStyle(csData);
 			}
 		}
 		StringBuffer sbuf = new StringBuffer();
