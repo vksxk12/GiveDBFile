@@ -84,7 +84,7 @@ public class GiveDBFileMain implements ActionListener {
 
 	private final String 		defaultViewString = "(Select View)";
 
-	private Vector<String> 		allColumnsinView = new Vector<String>();	
+	private Vector<String> 		allColumnsInView = new Vector<String>();	
 	private String 				selectedView;
 	private Vector<String> 		selectedColumns = new Vector<String>();
 	private ArrayList<String> 	selectedColumnDataTypes = new ArrayList<String>();
@@ -491,6 +491,13 @@ public class GiveDBFileMain implements ActionListener {
 			cbbColumn.setForeground(Color.LIGHT_GRAY);
 			selectedColumns.clear();
 			dlModelColumn.clear();
+			if( selectedColumnDataTypes.size() != 0 ) {
+
+				int bufferForSavingTotalDataTypes = selectedColumnDataTypes.size();
+				for(int i = bufferForSavingTotalDataTypes-1 ; i >= allColumnsInView.size()  ; i-- )
+					selectedColumnDataTypes.remove(i);
+
+			}
 
 		}else if(selectedView != null && cbbView.getSelectedItem() != null)
 			selectColumnsinView();
@@ -507,7 +514,7 @@ public class GiveDBFileMain implements ActionListener {
 
 			ResultSetMetaData metaData = rs.getMetaData();
 
-			allColumnsinView.clear();
+			allColumnsInView.clear();
 			cbbColumn.removeAllItems();
 			selectedColumns.clear();
 			selectedColumnDataTypes.clear();
@@ -522,7 +529,7 @@ public class GiveDBFileMain implements ActionListener {
 				str = metaData.getColumnName(i);
 				selectedColumnDataTypes.add( metaData.getColumnTypeName(i) );
 				cbbColumn.addItem( str );
-				allColumnsinView.add( str );
+				allColumnsInView.add( str );
 			}
 
 		}catch(SQLException e){
@@ -546,7 +553,9 @@ public class GiveDBFileMain implements ActionListener {
 			cbbColumn.setForeground(Color.BLACK);
 
 			if(!selectedColumns.isEmpty()) {
+
 				for(int i = 0 ; i < selectedColumns.size() ; i++) {
+
 					if(cbbColumn.getSelectedItem().equals(selectedColumns.get(i)))
 						throw new BizException();
 				}
@@ -575,8 +584,8 @@ public class GiveDBFileMain implements ActionListener {
 
 				bufferForMergeColumns.append( "*" );
 
-				for(int i=0 ; i < allColumnsinView.size() ; i++)
-					excelHeader.add( allColumnsinView.get(i) );
+				for(int i=0 ; i < allColumnsInView.size() ; i++)
+					excelHeader.add( allColumnsInView.get(i) );
 
 			} else {
 
@@ -592,8 +601,8 @@ public class GiveDBFileMain implements ActionListener {
 
 			if( selectedColumns.isEmpty() ) {
 
-				columnsCount = allColumnsinView.size();
-				dtModel 	 = new DefaultTableModel( allColumnsinView, 0 );
+				columnsCount = allColumnsInView.size();
+				dtModel 	 = new DefaultTableModel( allColumnsInView, 0 );
 
 			} else {
 
@@ -643,7 +652,7 @@ public class GiveDBFileMain implements ActionListener {
 
 					} else {
 
-						if("NUMBER".equals( selectedColumnDataTypes.get(allColumnsinView.size() + i) ))
+						if("NUMBER".equals( selectedColumnDataTypes.get(allColumnsInView.size() + i) ))
 							str[i] = String.valueOf( rs.getInt(i+1) );
 						else
 							str[i] = rs.getString(i+1);
@@ -693,10 +702,11 @@ public class GiveDBFileMain implements ActionListener {
 		else {
 
 			selectedColumns.removeElement ( listColumn.getSelectedValue() );
-			selectedColumnDataTypes.remove( allColumnsinView.size() + listColumn.getSelectedIndex());
+			selectedColumnDataTypes.remove( allColumnsInView.size() + listColumn.getSelectedIndex());
 			dlModelColumn.remove		  ( listColumn.getSelectedIndex() );
 
 		}
+		
 	}
 
 	@SuppressWarnings("deprecation")
@@ -783,10 +793,10 @@ public class GiveDBFileMain implements ActionListener {
 		StringBuffer bufferForMergeAndDescribeColumns = new StringBuffer();
 		if( selectedColumns.isEmpty() ) {
 
-			for(int i = 0 ; i < allColumnsinView.size() ;i++) {
+			for(int i = 0 ; i < allColumnsInView.size() ;i++) {
 
-				bufferForMergeAndDescribeColumns.append( allColumnsinView.get(i) );
-				if( (i+1) != allColumnsinView.size() )
+				bufferForMergeAndDescribeColumns.append( allColumnsInView.get(i) );
+				if( (i+1) != allColumnsInView.size() )
 					bufferForMergeAndDescribeColumns.append( "," );
 
 			}
@@ -847,72 +857,76 @@ public class GiveDBFileMain implements ActionListener {
 		lbSavedPathMSG.setText("D:");
 	}
 
-	//	public void debug(){
-	//		if(con!=null)
-	//			System.out.println("## CON : "+con.toString());
-	//		if(pstmt!=null)
-	//			System.out.println("## PSTMT : "+pstmt.toString());
-	//		if(rs!=null)
-	//			System.out.println("## RS : "+rs.toString());
-	//		System.out.println("01. selectedView : "+selectedView);
-	//		System.out.println("02. selectedColumns.size() : "+selectedColumns.size());
-	//		for(int i = 0 ; i < selectedColumns.size() ; i++)
-	//			System.out.print("["+selectedColumns.get(i)+"]");
-	//		System.out.println("03. selectedColumnDataTypes.size() : "+selectedColumnDataTypes.size());
-	//		for(int i = 0 ; i < selectedColumnDataTypes.size() ; i++)
-	//			System.out.print("["+selectedColumnDataTypes.get(i)+"]");
-	//		System.out.println("04. allColumnsinView.size() : "+allColumnsinView.size());
-	//		for(int i = 0 ; i < allColumnsinView.size() ; i++)
-	//			System.out.print("["+allColumnsinView.get(i)+"]");
-	//		System.out.println("05. excelHeader.size() : "+excelHeader.size());
-	//		for(int i = 0 ; i < excelHeader.size() ; i++)
-	//			System.out.print("["+excelHeader.get(i)+"]");
-	//		System.out.println("06. columnsCount : "+columnsCount);
-	//		System.out.println("07. rowsCount : "+rowsCount);
-	//		System.out.println("08. excelData.size() : "+excelData.size());
-	//		for(int i = 0 ; i < rowsCount ; i++){
-	//			for(int j = 0 ; j < columnsCount  ; j++) {
-	//				System.out.print("["+excelData.get(i*columnsCount+j)+"]");
-	//			}
-	//			System.out.println();
-	//		}
-	//		System.out.println("09. driver : "+driver);
-	//		System.out.print("10. con is null : "+(con==null));
-	//		if(con!=null){
-	//			try {
-	//				System.out.println(" , con.isClosed() : "+con.isClosed());
-	//			} catch (SQLException e) {
-	//				e.printStackTrace();
-	//				System.out.println(">>> con closed 오류발생 <<<");
-	//			}
-	//		}
-	//		else
-	//			System.out.println();
-	//		System.out.print("11. pstmt is null : "+(pstmt==null));
-	//		if(pstmt!=null){
-	//			try {
-	//				System.out.println(" , pstmt.isClosed() : "+pstmt.isClosed());
-	//			} catch (SQLException e) {
-	//				// TODO Auto-generated catch block
-	//				e.printStackTrace();
-	//				System.out.println(">>> pstmt closed 오류발생 <<<");
-	//			}
-	//		}
-	//		else
-	//			System.out.println();
-	//		System.out.print("12. rs is null : "+(rs==null));
-	//		if(rs!=null){
-	//			try {
-	//				System.out.println(" , rs.isClosed() : "+rs.isClosed());
-	//			} catch (SQLException e) {
-	//				// TODO Auto-generated catch block
-	//				e.printStackTrace();
-	//				System.out.println(">>> rs closed 오류발생 <<<");
-	//			}
-	//		}
-	//		else
-	//			System.out.println();
-	//	}
+	public void debug(){
+		if(con!=null)
+			System.out.println("## CON : "+con.toString());
+		if(pstmt!=null)
+			System.out.println("## PSTMT : "+pstmt.toString());
+		if(rs!=null)
+			System.out.println("## RS : "+rs.toString());
+		System.out.println("01. selectedView : "+selectedView);
+		System.out.println("02. selectedColumns.size() : "+selectedColumns.size());
+		for(int i = 0 ; i < selectedColumns.size() ; i++)
+			System.out.print("["+selectedColumns.get(i)+"]");
+		System.out.println();
+		System.out.println("03. selectedColumnDataTypes.size() : "+selectedColumnDataTypes.size());
+		for(int i = 0 ; i < selectedColumnDataTypes.size() ; i++)
+			System.out.print("["+selectedColumnDataTypes.get(i)+"]");
+		System.out.println();
+		System.out.println("04. allColumnsInView.size() : "+allColumnsInView.size());
+		for(int i = 0 ; i < allColumnsInView.size() ; i++)
+			System.out.print("["+allColumnsInView.get(i)+"]");
+		System.out.println();
+		System.out.println("05. excelHeader.size() : "+excelHeader.size());
+		for(int i = 0 ; i < excelHeader.size() ; i++)
+			System.out.print("["+excelHeader.get(i)+"]");
+		System.out.println();
+		System.out.println("06. columnsCount : "+columnsCount);
+		System.out.println("07. rowsCount : "+rowsCount);
+		System.out.println("08. excelData.size() : "+excelData.size());
+		for(int i = 0 ; i < rowsCount ; i++){
+			for(int j = 0 ; j < columnsCount  ; j++) {
+				System.out.print("["+excelData.get(i*columnsCount+j)+"]");
+			}
+			System.out.println();
+		}
+		System.out.println("09. driver : "+driver);
+		System.out.print("10. con is null : "+(con==null));
+		if(con!=null){
+			try {
+				System.out.println(" , con.isClosed() : "+con.isClosed());
+			} catch (SQLException e) {
+				e.printStackTrace();
+				System.out.println(">>> con closed 오류발생 <<<");
+			}
+		}
+		else
+			System.out.println();
+		System.out.print("11. pstmt is null : "+(pstmt==null));
+		if(pstmt!=null){
+			try {
+				System.out.println(" , pstmt.isClosed() : "+pstmt.isClosed());
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				System.out.println(">>> pstmt closed 오류발생 <<<");
+			}
+		}
+		else
+			System.out.println();
+		System.out.print("12. rs is null : "+(rs==null));
+		if(rs!=null){
+			try {
+				System.out.println(" , rs.isClosed() : "+rs.isClosed());
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				System.out.println(">>> rs closed 오류발생 <<<");
+			}
+		}
+		else
+			System.out.println();
+	}
 
 }
 
