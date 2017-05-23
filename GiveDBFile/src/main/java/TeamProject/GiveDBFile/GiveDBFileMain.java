@@ -390,11 +390,7 @@ public class GiveDBFileMain implements ActionListener {
 		else if(e.getSource() == btnDelete)
 			deleteListColumn();
 		else if(e.getSource() == btnDefaultPath)
-		{
-			tfPath.setText("D:");
-			lbSavedPathMSG.setForeground(Color.BLACK);
-			lbSavedPathMSG.setText("D:");
-		}
+			selectDefaultPath();
 	}
 
 	public void connectDB() {
@@ -845,73 +841,79 @@ public class GiveDBFileMain implements ActionListener {
 		}
 	}
 
-//	public void debug(){
-//		if(con!=null)
-//			System.out.println("## CON : "+con.toString());
-//		if(pstmt!=null)
-//			System.out.println("## PSTMT : "+pstmt.toString());
-//		if(rs!=null)
-//			System.out.println("## RS : "+rs.toString());
-//		System.out.println("01. selectedView : "+selectedView);
-//		System.out.println("02. selectedColumns.size() : "+selectedColumns.size());
-//		for(int i = 0 ; i < selectedColumns.size() ; i++)
-//			System.out.print("["+selectedColumns.get(i)+"]");
-//		System.out.println("03. selectedColumnDataTypes.size() : "+selectedColumnDataTypes.size());
-//		for(int i = 0 ; i < selectedColumnDataTypes.size() ; i++)
-//			System.out.print("["+selectedColumnDataTypes.get(i)+"]");
-//		System.out.println("04. allColumnsinView.size() : "+allColumnsinView.size());
-//		for(int i = 0 ; i < allColumnsinView.size() ; i++)
-//			System.out.print("["+allColumnsinView.get(i)+"]");
-//		System.out.println("05. excelHeader.size() : "+excelHeader.size());
-//		for(int i = 0 ; i < excelHeader.size() ; i++)
-//			System.out.print("["+excelHeader.get(i)+"]");
-//		System.out.println("06. columnsCount : "+columnsCount);
-//		System.out.println("07. rowsCount : "+rowsCount);
-//		System.out.println("08. excelData.size() : "+excelData.size());
-//		for(int i = 0 ; i < rowsCount ; i++){
-//			for(int j = 0 ; j < columnsCount  ; j++) {
-//				System.out.print("["+excelData.get(i*columnsCount+j)+"]");
-//			}
-//			System.out.println();
-//		}
-//		System.out.println("09. driver : "+driver);
-//		System.out.print("10. con is null : "+(con==null));
-//		if(con!=null){
-//			try {
-//				System.out.println(" , con.isClosed() : "+con.isClosed());
-//			} catch (SQLException e) {
-//				e.printStackTrace();
-//				System.out.println(">>> con closed 오류발생 <<<");
-//			}
-//		}
-//		else
-//			System.out.println();
-//		System.out.print("11. pstmt is null : "+(pstmt==null));
-//		if(pstmt!=null){
-//			try {
-//				System.out.println(" , pstmt.isClosed() : "+pstmt.isClosed());
-//			} catch (SQLException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//				System.out.println(">>> pstmt closed 오류발생 <<<");
-//			}
-//		}
-//		else
-//			System.out.println();
-//		System.out.print("12. rs is null : "+(rs==null));
-//		if(rs!=null){
-//			try {
-//				System.out.println(" , rs.isClosed() : "+rs.isClosed());
-//			} catch (SQLException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//				System.out.println(">>> rs closed 오류발생 <<<");
-//			}
-//		}
-//		else
-//			System.out.println();
-//	}
-	
+	public void selectDefaultPath() {
+		tfPath.setText("D:");
+		lbSavedPathMSG.setForeground(Color.BLACK);
+		lbSavedPathMSG.setText("D:");
+	}
+
+	//	public void debug(){
+	//		if(con!=null)
+	//			System.out.println("## CON : "+con.toString());
+	//		if(pstmt!=null)
+	//			System.out.println("## PSTMT : "+pstmt.toString());
+	//		if(rs!=null)
+	//			System.out.println("## RS : "+rs.toString());
+	//		System.out.println("01. selectedView : "+selectedView);
+	//		System.out.println("02. selectedColumns.size() : "+selectedColumns.size());
+	//		for(int i = 0 ; i < selectedColumns.size() ; i++)
+	//			System.out.print("["+selectedColumns.get(i)+"]");
+	//		System.out.println("03. selectedColumnDataTypes.size() : "+selectedColumnDataTypes.size());
+	//		for(int i = 0 ; i < selectedColumnDataTypes.size() ; i++)
+	//			System.out.print("["+selectedColumnDataTypes.get(i)+"]");
+	//		System.out.println("04. allColumnsinView.size() : "+allColumnsinView.size());
+	//		for(int i = 0 ; i < allColumnsinView.size() ; i++)
+	//			System.out.print("["+allColumnsinView.get(i)+"]");
+	//		System.out.println("05. excelHeader.size() : "+excelHeader.size());
+	//		for(int i = 0 ; i < excelHeader.size() ; i++)
+	//			System.out.print("["+excelHeader.get(i)+"]");
+	//		System.out.println("06. columnsCount : "+columnsCount);
+	//		System.out.println("07. rowsCount : "+rowsCount);
+	//		System.out.println("08. excelData.size() : "+excelData.size());
+	//		for(int i = 0 ; i < rowsCount ; i++){
+	//			for(int j = 0 ; j < columnsCount  ; j++) {
+	//				System.out.print("["+excelData.get(i*columnsCount+j)+"]");
+	//			}
+	//			System.out.println();
+	//		}
+	//		System.out.println("09. driver : "+driver);
+	//		System.out.print("10. con is null : "+(con==null));
+	//		if(con!=null){
+	//			try {
+	//				System.out.println(" , con.isClosed() : "+con.isClosed());
+	//			} catch (SQLException e) {
+	//				e.printStackTrace();
+	//				System.out.println(">>> con closed 오류발생 <<<");
+	//			}
+	//		}
+	//		else
+	//			System.out.println();
+	//		System.out.print("11. pstmt is null : "+(pstmt==null));
+	//		if(pstmt!=null){
+	//			try {
+	//				System.out.println(" , pstmt.isClosed() : "+pstmt.isClosed());
+	//			} catch (SQLException e) {
+	//				// TODO Auto-generated catch block
+	//				e.printStackTrace();
+	//				System.out.println(">>> pstmt closed 오류발생 <<<");
+	//			}
+	//		}
+	//		else
+	//			System.out.println();
+	//		System.out.print("12. rs is null : "+(rs==null));
+	//		if(rs!=null){
+	//			try {
+	//				System.out.println(" , rs.isClosed() : "+rs.isClosed());
+	//			} catch (SQLException e) {
+	//				// TODO Auto-generated catch block
+	//				e.printStackTrace();
+	//				System.out.println(">>> rs closed 오류발생 <<<");
+	//			}
+	//		}
+	//		else
+	//			System.out.println();
+	//	}
+
 }
 
 class BizException extends Exception {
